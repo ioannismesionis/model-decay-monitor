@@ -19,8 +19,6 @@ from evidently.profile_sections import (DataDriftProfileSection,
                                         ClassificationPerformanceProfileSection,
                                         RegressionPerformanceProfileSection)
 
-import logging
-logger = logging.getLogger('L&L')
 
 
 def create_column_mapping(df_ref, target = None, prediction = None):
@@ -38,8 +36,6 @@ def create_column_mapping(df_ref, target = None, prediction = None):
     """
     df_ref = df_ref.copy()
     column_mapping = {}
-
-    logger.debug('Create the column_mapping dictionary')
 
     # Get the dtypes of python available
     num_types = ['float64', 'float32', 'int64', 'int32']
@@ -111,12 +107,10 @@ def generate_model_data_drift_report(df_ref, df_prod, column_mapping = None, res
 
     # If "target_name" is not the columns, put None in the target (i.e. target drift cannot be generated)
     if target_name not in df_ref.columns:
-        logger.debug('Warning: Target is not available in the data')
         column_mapping['target'] = None
 
     # If "prediction_name" is not the columns, put None in the prediction (i.e. prediction drift cannot be generated)
     if prediction_name not in df_ref.columns:
-        logger.debug('Warning: Prediction is not available in the data')
         column_mapping['prediction'] = None
 
     # Capture the type of response dtype
@@ -132,14 +126,11 @@ def generate_model_data_drift_report(df_ref, df_prod, column_mapping = None, res
 
     # 3. None (i.e. capture data drift only)
     elif response_type == "none":
-        logger.debug('Warning: Only data drift report will be generated')
         report = Dashboard(tabs=[DataDriftTab])
         profile = Profile(sections=[DataDriftProfileSection])
 
     else:
         AssertionError('Please put either "categorical", "numerical" or "none" on the "response_type" argument!')
-
-    logger.debug('Generating the data and target/prediction drift')
 
     # Calculate the report of the model and target/predict drift
     report.calculate(df_ref,      # Reference data with target and/or prediction
@@ -162,8 +153,6 @@ def generate_model_data_drift_report(df_ref, df_prod, column_mapping = None, res
     json_report = profile.json()
     with open(custom_profile_name, 'w') as json_file:
         json.dump(json_report, json_file)
-
-    logger.debug('Sucess: Report is generated.')
 
 
 
@@ -256,5 +245,3 @@ def generate_model_performance_report(df_ref, df_prod, column_mapping = None, re
     json_report = profile_report.json()
     with open(profile_report_name, 'w') as json_file:
         json.dump(json_report, json_file)
-
-    logger.debug('Sucess: Report is generated.')

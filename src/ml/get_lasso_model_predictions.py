@@ -1,7 +1,5 @@
 # Import logger
 import joblib
-import logging
-logger = logging.getLogger('L&L')
 
 # Sklearn
 from sklearn.linear_model import LogisticRegression
@@ -19,19 +17,14 @@ def get_lasso_model_predictions(X_train, X_test, y_train, save_model = True):
     Returns:
         y_pred (pd.Series): The predictions made by the model
     """
-    logger.info('Training the Lasso Logistic Regression model')
-    
     # Train the model
     lasso = LogisticRegression(penalty = 'l1', solver = 'liblinear')
     lasso.fit(X_train, y_train)
-    
-    logger.info('Predict on test set')
     
     # Predict
     y_pred = lasso.predict(X_test)
     
     if save_model:
-        logger.info('Saving model for future use.')
         joblib.dump(lasso, './src/data/models/lasso_model.sav')
     
     return y_pred

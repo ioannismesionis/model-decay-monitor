@@ -1,9 +1,6 @@
 # Import required packages
 import pandas as pd
 
-import logging
-logger = logging.getLogger('L&L')
-
 
 def read_csv_data(path):
     """
@@ -21,7 +18,5 @@ def read_csv_data(path):
     
     if file_extension != 'csv':
         raise ValueError('File extension error: Expected: .csv - Received: {0}'.format(file_extension))
-        
-    logger.info(f'Reading the data from path: {path}')
     
     return pd.read_csv(path)

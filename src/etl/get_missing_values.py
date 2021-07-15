@@ -5,9 +5,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-import logging
-logger = logging.getLogger('L&L')
-
 
 def get_df_na(df):
     """
@@ -26,8 +23,6 @@ def get_df_na(df):
         pd.DataFrame: Pandas dataframe with the respective {number_of_nan', 'number_of_nan_prc} columns 
     """
     df = df.copy()
-    
-    logger.info('Calculating the nan values for the data')
     
     # Calculate the number of na values
     df_na_count = df.isnull().sum()
@@ -57,8 +52,6 @@ def get_na_columns(df, nan_col = 'number_of_nan'):
     if nan_col not in df.columns:
         # Nan_col not in our columns
         raise ValueError(f'The specified nan_col:{nan_col} does not exist as a column in the input data frame.')
-        
-    logger.info('Getting the nan columns that have to be imputed')
     
     return [idx_col for idx_col in df.index if df.loc[idx_col, nan_col] != 0]
     
@@ -76,7 +69,7 @@ def plot_kdensity(df, col):
     """
     # Ensure the column name exists
     if col not in df.columns:
-        logger.debug('Wrong column name')
+        raise ValueError('Wrong column name')
     else:
         plt.figure(figsize = (15, 7))
 
@@ -109,20 +102,16 @@ def impute_nan(df, cols, replacement = 'mean'):
     # Iterating on the cols specified by the user
     for col in cols:
         if replacement == 'mean':
-            logger.info(f'Impute column: {col}, Values filled with the {replacement}: {df[col].mean()}')
             
             # Fill with mean of the col
             df[col] = df[col].fillna(df[col].mean())
         elif replacement == 'median':
-            logger.info(f'Impute column: {col}, Values filled with the {replacement}: {df[col].median()}')
             
             # Fill with mean of the col
             df[col] = df[col].fillna(df[col].median())
         else:
             # Raise a ValueError for a wrong imputation technique
             raise ValueError('No valid selection for the "replacement" value; Please select "mean" or "median".')
-    
-    logger.info('Imputation completed')
     
     return df
         
