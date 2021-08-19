@@ -1,10 +1,16 @@
-# Load config and logger
-from eztools.operations import Logger, ConfigReader
-logger = Logger('/mnt/logs/', logger_name = 'L&L').get_logger()
+# Load packages
+import os
+import sys
+import logging
+import toml
+
+# Configure logger
+logging.basicConfig(level = logging.INFO, format = '%(asctime)s :: %(levelname)s :: %(message)s')
+logger = logging.getLogger(__name__)
 
 # Import packages
 from src.etl.get_data import read_csv_data
-from src.etl.get_missing_values import get_df_na, get_na_columns, impute_nan, plot_kdensity
+from src.etl.get_missing_values import get_df_na, get_na_columns, impute_nan#, plot_kdensity
 from src.etl.get_train_test_set import get_train_test_set
 
 # Modelling packages
@@ -12,7 +18,7 @@ from src.ml.get_lasso_model_predictions import get_lasso_model_predictions
 from src.ml.get_model_accuracy import get_model_accuracy
 
 
-def run_demo():
+def run_model_train_pipeline():
     '''
     Running a series of functions as part of the Launch & Learn session and TDD best practices
     
@@ -23,9 +29,9 @@ def run_demo():
         dict: Dictionary with the updated "message", "results" and "classification_metrics" field that shows whether the code succeeded
     '''
     try:
-        # Read config.ini
-        CONFIG_PATH = '/repos/poc-model-drift/src/config/config.ini'
-        config = ConfigReader(CONFIG_PATH, config_tuple = False).read_config()
+        # Read config.toml
+        CONFIG_PATH = './src/config/config.toml'
+        config = toml.load(CONFIG_PATH)
 
         # Unpack config
         DATA_PATH = config['data']['data_path']
@@ -71,7 +77,7 @@ def run_demo():
 
 
 if __name__ == '__main__':
-    res = run_demo()
+    res = run_model_train_pipeline()
     print(res['message'], res['result'])
     print(res['model_accuracy'])
     

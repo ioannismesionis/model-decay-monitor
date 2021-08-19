@@ -30,6 +30,6 @@ column_mapping = [{'target' = 'wine_colour',
 [json_reports_path]
 latest_drift_report_json = './reports/{today}/model_data_drift_poc_report_{today}.json'
 
-[messages]
+[message]
 
 [result]

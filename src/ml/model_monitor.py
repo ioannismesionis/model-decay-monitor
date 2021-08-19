@@ -508,7 +508,7 @@ class MonitorReportReader:
             report_path = self.json_file_path.replace('.json', '.html').replace('/mnt', '')
             
             # Create the project link
-            self.project_link = 'https://domino.europe.easyjet.local/u/{0}/view{1}'.format(self.project_name, report_path)
+            self.project_link = 'https://<your-url>/u/{0}/view{1}'.format(self.project_name, report_path)
             
             # Update the body of the e-mail as a table with the result and the corresponding message
             html = """\

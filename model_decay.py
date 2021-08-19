@@ -3,33 +3,30 @@ import os
 import pandas as pd
 from datetime import datetime
 import joblib
-import ast
 
 # Load config and logger
-from eztools.operations import Logger, ConfigReader
-logger = Logger("/mnt/logs/", logger_name="L&L").get_logger()
-
-# Import the mlops functions
-from src.etl.mlops import string_to_list
+# Configure logger
+logging.basicConfig(level = logging.INFO, format = '%(asctime)s :: %(levelname)s :: %(message)s')
+logger = logging.getLogger(__name__)
 
 # Import mlops packages
 from src.ml.model_monitor import ModelMonitorReports, MonitorReportReader
 
 
 
-def run_model_monitor():
+def run_model_decay():
     """
     Run the mlops to monitor model decay
     """
     try:
         # 1. Settings
-        # Read config.ini
-        CONFIG_PATH = "/repos/poc-model-drift/src/config/config.ini"
-        config = ConfigReader(CONFIG_PATH, config_tuple=False).read_config()
+        # Read config.toml
+        CONFIG_PATH = './src/config/config.toml'
+        config = toml.load(CONFIG_PATH)
 
         # Unpack the config file
         LATEST_DRIFT_REPORT = config["json_reports_path"]["latest_drift_report_json"]
-        DRIFT_EMAIL_RECEIVER = string_to_list(config["settings"]["drift_email_receiver"])
+        DRIFT_EMAIL_RECEIVER = config["settings"]["drift_email_receiver"]
         PROJECT_NAME = config["settings"]["project_name"]
 
         MODEL_PATH = config["model_monitor"]["model_path"]
@@ -41,7 +38,7 @@ def run_model_monitor():
         LATEST_DRIFT_REPORT_PATH = LATEST_DRIFT_REPORT.format(today=today)
 
         # Read the global column_mapping
-        column_mapping = ast.literal_eval(config['model_monitor']['column_mapping'])
+        column_mapping = config['model_monitor']['column_mapping'][0]
 
         logger.info("Getting the model to predict on production data")
 
@@ -62,8 +59,12 @@ def run_model_monitor():
 
         # 2.2 Get ground truth data
         # Bring in the ground truth data and drop the response because we do not have the ground truth yet for the production data
+        # Note: These need to be defined from the config.toml
+        from_location = 'your-source-location'
+        to_location = 'your-destination-location'
+        
         os.system(
-            f"hadoop fs -copyToLocal -f /analyst/data_science/poc-data-drift/df_reference.pickle /repos/poc-model-drift/"
+            f"hadoop fs -copyToLocal -f {from_location}/df_reference.pickle {to_location}"
         )
 
         # Read the ground truth data (reference data)
@@ -98,11 +99,11 @@ def run_model_monitor():
     except Exception as e:
         logger.critical(e, exc_info=True)
         config['result'] = -1
-        config['messages'] = "Error in the model monitor report"
+        config['message'] = "Error in the model monitor report"
 
-    return {k: config[k] for k in ('result', 'messages')}
+    return {k: config[k] for k in ('result', 'message')}
 
 
 if __name__ == "__main__":
-    res = run_model_monitor()
+    res = run_model_decay()
     print(res)
