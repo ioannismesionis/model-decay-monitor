@@ -9,3 +9,7 @@ Concept drift is a phenomenon where the statistical properties of the _independe
 
 The packages that will be explored are: <br>
 - [Evidenty AI](https://github.com/evidentlyai/evidently) 
+- [Prometheus](https://prometheus.io/) 
+- [Scikit-multiflow](https://scikit-multiflow.github.io/) 
+
+For an extensive documentation in **model drift** please visit the dedicated [confluence](http://conf.europe.easyjet.local/display/DST/Model+Drift) page

@@ -4,6 +4,10 @@ import pandas as pd
 # Sklearn
 from sklearn.model_selection import train_test_split
 
+# Import logger
+import logging
+logger = logging.getLogger('L&L')
+
 
 def get_train_test_set(df, response, encode = True, pos_class = None, random_state = 0):
     """
@@ -24,6 +28,8 @@ def get_train_test_set(df, response, encode = True, pos_class = None, random_sta
     """
     df = df.copy()
     
+    logger.info(f'Capturing the response col: {response}')
+    
     # Split in X and y
     X = df.drop(response, axis = 1)
     y = df[response]
@@ -39,7 +45,11 @@ def get_train_test_set(df, response, encode = True, pos_class = None, random_sta
             raise ValueError('The positive class value {0} is not present in the values of the response'.format(pos_class))
             
         # Else, perform the encoding
+        logger.info('Performing binary encoding in the response')
+        
         y = y.map(lambda x: 1 if x == pos_class else 0)
+    
+    logger.info('Split the data into train and test set')
     
     # Split the data
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = random_state)

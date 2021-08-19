@@ -1,5 +1,11 @@
+# Email packages
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 # Import required packages
 import pandas as pd
+import numpy as np
 from datetime import datetime
 import json
 
@@ -19,6 +25,8 @@ from evidently.profile_sections import (DataDriftProfileSection,
                                         ClassificationPerformanceProfileSection,
                                         RegressionPerformanceProfileSection)
 
+import logging
+logger = logging.getLogger('L&L')
 
 
 def create_column_mapping(df_ref, target = None, prediction = None):
@@ -36,6 +44,8 @@ def create_column_mapping(df_ref, target = None, prediction = None):
     """
     df_ref = df_ref.copy()
     column_mapping = {}
+
+    logger.debug('Create the column_mapping dictionary')
 
     # Get the dtypes of python available
     num_types = ['float64', 'float32', 'int64', 'int32']
@@ -107,10 +117,12 @@ def generate_model_data_drift_report(df_ref, df_prod, column_mapping = None, res
 
     # If "target_name" is not the columns, put None in the target (i.e. target drift cannot be generated)
     if target_name not in df_ref.columns:
+        logger.debug('Warning: Target is not available in the data')
         column_mapping['target'] = None
 
     # If "prediction_name" is not the columns, put None in the prediction (i.e. prediction drift cannot be generated)
     if prediction_name not in df_ref.columns:
+        logger.debug('Warning: Prediction is not available in the data')
         column_mapping['prediction'] = None
 
     # Capture the type of response dtype
@@ -126,11 +138,14 @@ def generate_model_data_drift_report(df_ref, df_prod, column_mapping = None, res
 
     # 3. None (i.e. capture data drift only)
     elif response_type == "none":
+        logger.debug('Warning: Only data drift report will be generated')
         report = Dashboard(tabs=[DataDriftTab])
         profile = Profile(sections=[DataDriftProfileSection])
 
     else:
-        AssertionError('Please put either "categorical", "numerical" or "none" on the "response_type" argument!')
+        raise AssertionError('Please put either "categorical", "numerical" or "none" on the "response_type" argument!')
+
+    logger.debug('Generating the data and target/prediction drift')
 
     # Calculate the report of the model and target/predict drift
     report.calculate(df_ref,      # Reference data with target and/or prediction
@@ -144,8 +159,8 @@ def generate_model_data_drift_report(df_ref, df_prod, column_mapping = None, res
 
     # Create the report and profile name
     today = datetime.today().strftime('%Y%m%d')
-    custom_report_name = 'reports/model_data_drift_{0}_report_{1}.html'.format(report_name, today)
-    custom_profile_name = 'reports/model_data_drift_{0}_report_{1}.json'.format(report_name, today) 
+    custom_report_name = '/mnt/reports/{today}/model_data_drift_{report_name}_report_{today}.html'.format(report_name = report_name, today = today)
+    custom_profile_name = '/mnt/reports/{today}/model_data_drift_{report_name}_report_{today}.json'.format(report_name = report_name, today = today)
     
     # Export the report as an .html object and .json files
     report.save(custom_report_name)
@@ -153,6 +168,8 @@ def generate_model_data_drift_report(df_ref, df_prod, column_mapping = None, res
     json_report = profile.json()
     with open(custom_profile_name, 'w') as json_file:
         json.dump(json_report, json_file)
+
+    logger.debug('Sucess: Report is generated.')
 
 
 
@@ -236,8 +253,8 @@ def generate_model_performance_report(df_ref, df_prod, column_mapping = None, re
 
     # Create the report name
     today = datetime.today().strftime('%Y%m%d')
-    custom_report_name = 'reports/model_performance_{0}_report_{1}.html'.format(report_name, today) 
-    profile_report_name = 'reports/model_performance_{0}_report_{1}.json'.format(report_name, today)
+    custom_report_name = '/mnt/reports/{today}/model_performance_{report_name}_report_{today}.html'.format(report_name = report_name, today = today)
+    profile_report_name = '/mnt/reports/{today}/model_performance_{report_name}_report_{today}.json'.format(report_name = report_name, today = today)
 
     # Export the report as an .html object and .json files
     performance_report.save(custom_report_name)
@@ -245,3 +262,195 @@ def generate_model_performance_report(df_ref, df_prod, column_mapping = None, re
     json_report = profile_report.json()
     with open(profile_report_name, 'w') as json_file:
         json.dump(json_report, json_file)
+
+    logger.debug('Sucess: Report is generated.')
+
+
+def create_data_drift_table(json_file, p_value_threshold = 0.05):
+    """
+    Create the data drift table from a .json report.
+
+    Args:
+        json_file (str): Json file in the string format
+        p_value_threshold (float): p-value threshold to compare against
+        
+    Returns:
+        pd.DataFrame: with the columns {"column_name", "p_value", "p_value_threshold"}
+    """
+    # Read the json file
+    df_drift = pd.read_json(json_file)
+    
+    # If the data_drift is present in the report, 
+    # capture the data in a pd.DataFrane format
+    if 'data_drift' not in df_drift.columns:
+        raise AssertionError("The 'data_drift' column should be in the .json file")
+    
+    # Create an empty dataframe to store the values
+    df_data_drift = pd.DataFrame()
+
+    for column, metrics in df_drift.loc['data', 'data_drift']['metrics'].items():
+        row = {'column_name': column,
+            'p_value': metrics['p_value'],
+            'p_value_threshold': p_value_threshold}
+        df_data_drift = df_data_drift.append(row, ignore_index=True)
+    
+    # Capture if drift is detected in the target/response
+    df_data_drift['drift'] = np.where(df_data_drift['p_value'] < df_data_drift['p_value_threshold'],
+                                      'Detected',
+                                      'Not detected')
+
+    return df_data_drift
+
+
+def create_model_drift_table(json_file, response_type = 'categorical', p_value_threshold = 0.05):
+    """
+    Create the model drift table from a .json report.
+
+    Args:
+        json_file (str): Json file in the string format
+        response_type (str): Data type of the response & prediction ("categorical" of "numerical")
+        p_value_threshold (float): p-value threshold to compare against
+        
+    Returns:
+        pd.DataFrame: with the columns {"column_name", "p_value", "p_value_threshold"}
+    """
+    # Read the json file
+    df_drift = pd.read_json(json_file)
+    
+    if response_type == 'categorical':
+        # The 'cat_target_drift' should be present in the .json report 
+        assert 'cat_target_drift' in df_drift.columns, 'The "cat_target_drift" column is not present in the json file'
+        
+        # Create the table with the target/prediction drift
+        df_target_drift = pd.DataFrame(df_drift.loc['data', 'cat_target_drift']['metrics'], index=[0])
+        
+    elif response_type == 'numerical':
+        # The 'num_target_drift' should be present in the .json report
+        assert 'num_target_drift' in df_drift.columns, 'The "num_target_drift" column is not present in the json file'
+    
+        # Create the table with the target/prediction drift
+        df_target_drift = pd.DataFrame(df_drift.loc['data', 'num_target_drift']['metrics'], index=[0])
+        
+    else:
+        raise AssertionError('Please put either "categorical" or "numerical" on the "response_type" argument!')
+        
+    # If true, that means that we have prediction & target drift
+    if len(df_target_drift.columns) > 3:
+        
+        # Take the first 3 & 3 last columns and stack them
+        # First 3: Prediction drift, Last 3: Target drift
+        p_values = np.vstack((df_target_drift.iloc[:, :3], df_target_drift.iloc[:, -3:]))
+        df_target_drift = pd.DataFrame(p_values, columns = ['drift_column', 'dtype', 'p_value'])
+
+    else:
+        # Just rename the columns for consistency
+        df_target_drift.columns = ['drift_column', 'dtype', 'p_value']
+        
+    # Generate the p_value threshold column
+    df_target_drift['p_value_threshold'] = p_value_threshold
+    
+    # Capture if drift is detected in the target/response
+    df_target_drift['drift'] = np.where(df_target_drift['p_value'] < df_target_drift['p_value_threshold'],
+                                        'Detected',
+                                        'Not detected')
+    
+    return df_target_drift
+
+
+def read_json_file(file_path):
+    """
+    Read a json file as a json string.
+
+    Args:
+        file_path (str): The path of the .json file to read
+
+    Returns:
+        json: Json file read in a string format
+    """
+    logger.debug('Reading the .json file.')
+
+    with open(file_path, 'r') as json_file:
+        json_string = json.load(json_file)
+
+    return json_string
+
+
+def email_generator(email_recipients, project_name, report_path, df_drift_table):
+    '''
+    Send pre-specified e-mail to recipients e-mail addresses.
+    
+    Args:
+        email_recipients (list): E-mail addresses that an e-mail will be sent
+        project_name (string): The project name to be sent to the subject
+        df_drift_table (pd.DataFrame): The table that contains the informatin of drift or not
+    
+    Returns:
+        None
+    '''
+    try:
+        # Convert the result to a pandas dataframe
+        df_drift_table = df_drift_table.copy()
+        
+        msg = MIMEMultipart('alternative')
+        
+        # Update the subject of the e-mail
+        msg['Subject'] = 'Drift Detected in project: {}'.format(project_name)
+
+        # Capture the path of the dashboard
+        # Note: It should be the exact same name with changed extension (.html is expected)
+        report_path = report_path.replace('.json', '.html').replace('/mnt', '')
+
+        # Create the project link
+        project_link = 'https://domino.europe.easyjet.local/u/{0}/view{1}'.format(project_name, report_path)
+        
+        # Update the body of the e-mail as a table with the result and the corresponding message
+        html = """\
+                <html>
+                  <head></head>
+                  <body>
+                    {0} <br>
+
+                    Please check the reports in the following link: <br>
+                    {1}
+                  </body>
+                </html>
+                """.format(df_drift_table.to_html(), project_link)
+
+        msg.attach(MIMEText(html, 'html'))
+        
+        # Specify the server
+        server = smtplib.SMTP('smtp.europe.easyjet.local', 25)
+        server.ehlo
+        
+        # Iterate on the list that holds the e-mail addresses
+        for email in email_recipients:
+            server.sendmail('domino_script@easyjet.com', [email], msg.as_string())
+            
+        # Close the connection
+        server.close()
+        
+    except Exception as e:
+        raise Exception(f"Could not sent the e-mail. Error: {e}")
+
+
+def string_to_list(string, split = ',', allow_empty_string=False): 
+    '''
+    Converts a string to a list using a ',' as the delimiter string.
+    
+    Args:
+        string (string): a string input delimited by commas where the split of the string is required for the final list output.
+        split (string): type of split to be used (currently supporting "," and "~")
+        allow_empty_string (bool, default False): option to remove empty strings from the returned list
+    
+    Returns:
+        list: from the string that is used as an input.
+    '''
+    if split == ',':
+        li = list(string.split(",")) 
+    elif split == '~':
+        li = list(string.split("~"))
+        
+    if not allow_empty_string:
+        li = [s for s in li if s] # removes empty strings
+        
+    return li 
