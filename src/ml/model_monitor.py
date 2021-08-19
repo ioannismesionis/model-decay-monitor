@@ -28,11 +28,8 @@ from evidently.profile_sections import (DataDriftProfileSection,
                                         RegressionPerformanceProfileSection)
 
 # Create internal logger to be used
-_log = logging.getLogger(__name__)
-_log.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-_log.addHandler(ch)
+logger = logging.getLogger(__name__)
+
 
 
 class ModelMonitorReports:
@@ -41,8 +38,6 @@ class ModelMonitorReports:
     Model monitor to capture model decay overtime. The class has been built on the "evidently" python package.
 
     Resources can be found here: https://docs.evidentlyai.com/
-
-    For any questions, please refer to the CTO team from the Data Science & Analytics team.
 
     Attributes:
         df_reference (pd.DataFrame): The reference data (ground truth). It should contain at least
@@ -71,13 +66,13 @@ class ModelMonitorReports:
         self.column_mapping = column_mapping
 
     def __repr__(self):
-       return (""" Welcome to Model Monitor package created by the CTO team! \n
-                   Available methods: \n
-                   1. generate_model_data_drift_report()  --> Detects model and/or data drift \n
-                   2. generate_model_performance_report() --> Generate performance comparison and metrics \n
-                   3. update_column_mapping()             --> Column mapping that powers the information shown in the visualisations. \n \n
-                   Enjoy!   
-               """)
+        return (""" Welcome to the Model Monitor package! \n
+                    Available methods: \n
+                    1. generate_model_data_drift_report()  --> Detects model and/or data drift \n
+                    2. generate_model_performance_report() --> Generate performance comparison and metrics \n
+                    3. update_column_mapping()             --> Column mapping that powers the information shown in the visualisations. \n \n
+                    Enjoy!   
+                """)
 
 
     def update_column_mapping(self, column_mapping):
@@ -136,12 +131,12 @@ class ModelMonitorReports:
         
         # If "target_name" is not the columns, put None in the target (i.e. target drift cannot be generated)
         if target_name not in df_ref.columns:
-            _log.info('Warning: Target is not available in the data')
+            logger.info('Warning: Target is not available in the data')
             self.column_mapping['target'] = None
 
         # If "prediction_name" is not the columns, put None in the prediction (i.e. prediction drift cannot be generated)
         if prediction_name not in df_ref.columns:
-            _log.info('Warning: Prediction is not available in the data')
+            logger.info('Warning: Prediction is not available in the data')
             self.column_mapping['prediction'] = None
 
         # Capture the type of response dtype
@@ -157,7 +152,7 @@ class ModelMonitorReports:
 
         # 3. None (i.e. capture data drift only)
         elif response_type == "none":
-            _log.info('Warning: Only data drift report will be generated')
+            logger.info('Warning: Only data drift report will be generated')
             report = Dashboard(tabs=[DataDriftTab])
             profile = Profile(sections=[DataDriftProfileSection])
         
@@ -165,7 +160,7 @@ class ModelMonitorReports:
         else:
             raise AssertionError('Please put either "categorical", "numerical" or "none" on the "response_type" argument!')
 
-        _log.info('Generating the data and target/prediction drift')
+        logger.info('Generating the data and target/prediction drift')
 
         # Calculate the report of the model and target/predict drift
         report.calculate(df_ref,      # Reference data with target and/or prediction
@@ -179,8 +174,8 @@ class ModelMonitorReports:
 
         # Create the report and profile name to be saved in /mnt
         today = datetime.today().strftime('%Y%m%d')
-        custom_report_name = '/mnt/reports/{today}/model_data_drift_{report_name}_report_{today}.html'.format(report_name = report_name, today = today)
-        custom_profile_name = '/mnt/reports/{today}/model_data_drift_{report_name}_report_{today}.json'.format(report_name = report_name, today = today)
+        custom_report_name = './reports/{today}/model_data_drift_{report_name}_report_{today}.html'.format(report_name = report_name, today = today)
+        custom_profile_name = './reports/{today}/model_data_drift_{report_name}_report_{today}.json'.format(report_name = report_name, today = today)
 
         # Export the report as an .html object and .json files
         # 1. Save as .html
@@ -191,7 +186,7 @@ class ModelMonitorReports:
         with open(custom_profile_name, 'w') as json_file:
             json.dump(json_report, json_file)
 
-        _log.info('Sucess: Report is generated.')
+        logger.info('Sucess: Report is generated.')
 
 
     def generate_model_performance_report(self, report_type = 'classification', report_name = ''):
@@ -220,13 +215,13 @@ class ModelMonitorReports:
         # Specify the Dashbord to be generated
         # 1. Classification report
         if report_type == 'classification':
-            _log.info('Generating the "classification" report')
+            logger.info('Generating the "classification" report')
             performance_report = Dashboard(tabs=[ClassificationPerformanceTab])
             profile_report = Profile(sections=[ClassificationPerformanceProfileSection])
 
         # 2. Regression report
         elif report_type == 'regression':
-            _log.info('Generating the "regression" report')
+            logger.info('Generating the "regression" report')
             performance_report = Dashboard(tabs=[RegressionPerformanceTab])
             profile_report = Profile(sections=[RegressionPerformanceProfileSection])
         
@@ -272,8 +267,8 @@ class ModelMonitorReports:
 
         # Create the report name
         today = datetime.today().strftime('%Y%m%d')
-        custom_report_name = '/mnt/reports/{today}/model_performance_{report_name}_report_{today}.html'.format(report_name = report_name, today = today)
-        profile_report_name = '/mnt/reports/{today}/model_performance_{report_name}_report_{today}.json'.format(report_name = report_name, today = today)
+        custom_report_name = './reports/{today}/model_performance_{report_name}_report_{today}.html'.format(report_name = report_name, today = today)
+        profile_report_name = './reports/{today}/model_performance_{report_name}_report_{today}.json'.format(report_name = report_name, today = today)
 
         # Export the report as an .html object and .json files
         # 1. Save as .html
@@ -284,7 +279,7 @@ class ModelMonitorReports:
         with open(profile_report_name, 'w') as json_file:
             json.dump(json_report, json_file)
 
-        _log.info('Sucess: Report is generated.')
+        logger.info('Sucess: Report is generated.')
 
 
 class MonitorReportReader:
@@ -317,7 +312,7 @@ class MonitorReportReader:
 
 
     def __repr__(self):
-        return (""" Welcome to Monitor Report package created by the CTO team! \n
+        return (""" Welcome to the Monitor Report package! \n
                     Available methods: \n
                     1. create_data_drift_table()  --> Converts a .json report of data drift to a pd.DataFrame \n
                     2. create_model_drift_table() --> Converts a .json report of model drift to a pd.DataFrame \n
@@ -382,7 +377,7 @@ class MonitorReportReader:
         # Create an empty dataframe to store the values
         self.df_data_drift = pd.DataFrame()
 
-        _log.info('Generating the data drift table')
+        logger.info('Generating the data drift table')
 
         # Iterate on the pandas data frame metrics (metrics appears as a dict)
         for column, metrics in df_drift.loc['data', 'data_drift']['metrics'].items():
@@ -414,7 +409,7 @@ class MonitorReportReader:
         # Read the json string
         df_drift = pd.read_json(self.json_string)
 
-        _log.info('Generating the model drift table')
+        logger.info('Generating the model drift table')
 
         if response_type == 'categorical':
             # The 'cat_target_drift' should be present in the .json report 
@@ -472,7 +467,7 @@ class MonitorReportReader:
 
                 # If the data is empty then we should stop the execution
                 if self.df_data_drift.empty:
-                    _log.critical('The Dataframe for data drift is empty!')
+                    logger.critical('The Dataframe for data drift is empty!')
 
                     return -1
 
@@ -483,7 +478,7 @@ class MonitorReportReader:
 
                 # If the data is empty then we should stop the execution
                 if self.df_target_drift.empty:
-                    _log.critical('The Dataframe for model drift is empty!')
+                    logger.critical('The Dataframe for model drift is empty!')
 
                     return -1
 
@@ -497,11 +492,11 @@ class MonitorReportReader:
 
             # If no drift, then return -2
             if df_drift_table.empty:
-                _log.info('No drift detected!')
+                logger.info('No drift detected!')
 
                 return -2
 
-            _log.info('Drift is detected - contacting Data Science & Analytics team!')
+            logger.info('Drift is detected - contacting Data Science & Analytics team!')
 
             msg = MIMEMultipart('alternative')
             
@@ -529,16 +524,16 @@ class MonitorReportReader:
             msg.attach(MIMEText(html, 'html'))
             
             # Specify the server
-            server = smtplib.SMTP('smtp.europe.easyjet.local', 25)
-            server.ehlo
-            
-            # Iterate on the list that holds the e-mail addresses
-            for email in email_recipients:
-                server.sendmail('domino_script@easyjet.com', [email], msg.as_string())
-            
-            # Close the connection
-            server.close()
+            conn = smtplib.SMTP('smtp.gmail.com', 587)
+            conn.starttls()
 
+            # Login to e-mail and send message
+            conn.login('my_email@gmail.com', 'my_password123')
+            conn.sendmail('my_email@gmail.com', email_recipients, msg.as_string())
+
+            # Close the connection
+            conn.quit()
+            
             return 0
 
         except Exception as e:

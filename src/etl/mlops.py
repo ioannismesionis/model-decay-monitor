@@ -26,7 +26,7 @@ from evidently.profile_sections import (DataDriftProfileSection,
                                         RegressionPerformanceProfileSection)
 
 import logging
-logger = logging.getLogger('L&L')
+logger = logging.getLogger(__name__)
 
 
 def create_column_mapping(df_ref, target = None, prediction = None):

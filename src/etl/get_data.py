@@ -2,7 +2,7 @@
 import pandas as pd
 
 import logging
-logger = logging.getLogger('L&L')
+logger = logging.getLogger(__name__)
 
 
 def read_csv_data(path):

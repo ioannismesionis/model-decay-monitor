@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 import logging
-logger = logging.getLogger('L&L')
+logger = logging.getLogger(__name__)
 
 
 def get_df_na(df):

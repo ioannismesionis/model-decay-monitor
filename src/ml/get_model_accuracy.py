@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score
 
 # Import logger
 import logging
-logger = logging.getLogger('L&L')
+logger = logging.getLogger(__name__)
 
 
 def get_model_accuracy(y_test, y_pred):

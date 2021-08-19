@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 # Import logger
 import logging
-logger = logging.getLogger('L&L')
+logger = logging.getLogger(__name__)
 
 
 def get_train_test_set(df, response, encode = True, pos_class = None, random_state = 0):

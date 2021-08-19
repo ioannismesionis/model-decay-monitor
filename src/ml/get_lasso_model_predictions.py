@@ -1,7 +1,7 @@
 # Import logger
 import joblib
 import logging
-logger = logging.getLogger('L&L')
+logger = logging.getLogger(__name__)
 
 # Sklearn
 from sklearn.linear_model import LogisticRegression
